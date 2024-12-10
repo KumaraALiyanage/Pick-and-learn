@@ -1,0 +1,76 @@
+#include <MFRC522.h>
+
+#define NR_OF_READERS   3
+
+#define RST_PIN 9
+#define SS_PIN_1 10
+#define SS_PIN_2 7
+#define SS_PIN_3 8
+
+// Define RFID scanner numbers
+const int scanner1 = 2;
+const int scanner2 = 3;
+const int scanner3 = 4;
+
+MFRC522 mfrc522[NR_OF_READERS] = {
+  MFRC522(SS_PIN_1, RST_PIN),
+  MFRC522(SS_PIN_2, RST_PIN),
+  MFRC522(SS_PIN_3, RST_PIN)
+};
+
+void setup() {
+  Serial.begin(9600);
+  SPI.begin();
+  Serial.println("");
+}
+
+void loop() {
+  // Check if any card is detected on any scanner
+  bool allCardsDetected = true;
+  bool tag1Detected = false;
+  bool tag2Detected = false;
+  bool tag3Detected = false;
+
+  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+    if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
+      allCardsDetected = false;
+
+      String content = "";
+      for (byte i = 0; i < mfrc522[reader].uid.size; i++) {
+        content.concat(String(mfrc522[reader].uid.uidByte[i] < 0x10 ? "0" : ""));
+        content.concat(String(mfrc522[reader].uid.uidByte[i], HEX));
+      }
+      content.toUpperCase();
+
+      if (content == "6D785838") {
+        tag1Detected = true;
+      } else if (content == "AD646737") {
+        tag2Detected = true;
+      } else if (content == "CD769138") {
+        tag3Detected = true;
+      }
+    }
+  }  
+
+  if (allCardsDetected) {
+    Serial.println("11");
+  } else {
+    if (!tag1Detected && !tag2Detected) {
+      Serial.println("99"); // Both tag 1 and tag 2 not detected
+    } else if (!tag2Detected && !tag3Detected) {
+      Serial.println("99"); // Both tag 2 and tag 3 not detected
+    } else if (!tag1Detected && !tag3Detected) {
+      Serial.println("99"); // Both tag 1 and tag 3 not detected
+    } else if (tag1Detected && tag2Detected && !tag3Detected) {
+      Serial.println("2233"); // Tag 1 and tag 2 detected together
+    } else if (tag2Detected && tag3Detected && !tag1Detected) {
+      Serial.println("3344"); // Tag 2 and tag 3 detected together
+    } else if (tag1Detected && tag3Detected && !tag2Detected) {
+      Serial.println("2244"); // Tag 1 and tag 3 detected together
+    } else {
+      Serial.println("9999"); // None of the above cases, something went wrong
+    }
+  }
+  
+  delay(1000); // Add a small delay to avoid flooding the serial monitor
+}

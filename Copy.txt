@@ -1,0 +1,10 @@
+[Paths]
+video_folder = ./media
+media_player_path = mpv
+
+[Serial]
+serial_port = COM3
+baudrate = 9600
+
+[Stop]
+stop_number = 4
